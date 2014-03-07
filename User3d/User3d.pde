@@ -9,6 +9,11 @@
  * ----------------------------------------------------------------------------
  */
  
+ /*************************************************************************
+ To Do:
+ ---- Fix the CENTERED user.pos bug, figure out a way to drop them (0.0,0.0,0.0)
+ *************************************************************************/
+ 
 import SimpleOpenNI.*;
 import processing.opengl.*;
 import oscP5.*;
@@ -107,27 +112,15 @@ void draw()
   } 
   endShape();
   
-  ArrayList<Integer> usersToRemove = new ArrayList<Integer>();
   //loop through the users and do all updates here
   for(int i=0;i<users.size();i++){
     // draw the center of mass
-    if(context.getCoM(users.get(i).userId,com)){
-      users.get(i).updateUser(com);
-      if(users.get(i).goodToKill){
-        usersToRemove.add(i);
-      }
-      else{
-        User currUser = users.get(i);
-        
-        fill(100,255,0);
-        noStroke();
-        pushMatrix();
-        translate(currUser.pos.x,currUser.pos.y,currUser.pos.z);
-        sphere(25);
-        popMatrix();
-        
-        scrx = screenX(currUser.pos.x,currUser.pos.y,currUser.pos.z);
-      }
+    if(context.getCoM(users.get(i).userId,users.get(i).pos)){
+      users.get(i).updateUser();
+      User currUser = users.get(i);
+      currUser.drawPos();
+      
+      scrx = screenX(currUser.pos.x,currUser.pos.y,currUser.pos.z);
     }
   }
   
@@ -180,13 +173,7 @@ void draw()
   OscMessage myMessage = new OscMessage("");
   myMessage.add(leftPan);
   myMessage.add(rightPan);
-  oscP5.send(myMessage,sendLocation);
-  
-  //Clean-up our users
-  for(int i=0;i<usersToRemove.size();i++){
-    users.remove((int) usersToRemove.get(i));
-  }
-  
+  oscP5.send(myMessage,sendLocation);  
 }
 
 //User functions----------------------------------------------------
@@ -206,11 +193,11 @@ User returnUserByUserId(int id){
 void onNewUser(SimpleOpenNI curContext,int userId)
 {
   println("onNewUser - userId: " + userId);
-  context.startTrackingSkeleton(userId);
+  //context.startTrackingSkeleton(userId);
   users.add(new User(userId));
 }
 
-void onLostUser(SimpleOpenNI curContext,int userId)
+void onLostUser(SimpleOpenNI curContext,int userId) //this is called 10 seconds after the user is lost
 {
   println("onLostUser - userId: " + userId);
   users.remove(returnUserByUserId(userId));
