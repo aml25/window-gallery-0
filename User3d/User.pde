@@ -39,6 +39,10 @@ class User{
     drawPos();
     updateBasePos();
     drawBasePos();
+    
+    println("diff X = " + returnPosCoordDiff(pos.x,basePos.x));
+    println("diff Y = " + returnPosCoordDiff(pos.y,basePos.y));
+    println("diff Z = " + returnPosCoordDiff(pos.z,basePos.z));
   }
   
   void updatePos(){
@@ -47,7 +51,6 @@ class User{
       posMillisCount = currMillis;
       prevPos.set(pos); //store the last known center position ( USE SET() HERE NOT = )
     }
-    //println(returnPosDiff());
   }
   
   void updateBasePos(){
@@ -81,7 +84,6 @@ class User{
       avg += v.get(i)*weight;
       weightSum += weight;
     }
-    println("v size = " + v.size());
     return avg/weightSum;
   }
   
@@ -101,6 +103,10 @@ class User{
     translate(basePos.x,basePos.y,basePos.z);
     sphere(10);
     popMatrix();  
+  }
+  
+  float returnPosCoordDiff(float posVal, float basePosVal){
+    return posVal - basePosVal;  
   }
   
   float returnPosDiff(PVector pos1, PVector pos2){
