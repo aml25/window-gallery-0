@@ -117,10 +117,8 @@ void draw()
     // draw the center of mass
     if(context.getCoM(users.get(i).userId,users.get(i).pos)){
       users.get(i).updateUser();
-      User currUser = users.get(i);
-      currUser.drawPos();
       
-      scrx = screenX(currUser.pos.x,currUser.pos.y,currUser.pos.z);
+      scrx = screenX(users.get(i).pos.x,users.get(i).pos.y,users.get(i).pos.z);
     }
   }
   
