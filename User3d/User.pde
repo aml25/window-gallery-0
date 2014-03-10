@@ -17,39 +17,65 @@ class User{
                    //it will be a running average of all previous and current positions
                    //weighting in forward (or reverse) order to come...
   
+  PVector posDiff;
+  
   long currMillis;
   
   //position updater counter
   long posMillisCount = 0;
   int posMillisCountInterval = 250; //1/4 of a second
   
+  PVector randomPos;
+  long randomPosMillisCount = 0;
+  int randomPosMillisCountInterval = 3000;
+  
   User(int id){
     userId = id;    
     pos = new PVector(); //create an empty PVector
     prevPos = new PVector(); //empty PVector to avoid NullPointer
     basePos = new PVector();
+    posDiff = new PVector();
+    randomPos = new PVector();
     
     for(int i=0;i<3;i++){
       rgb[i] = round(random(75,255));  
     }
   }
   
-  void updateUser(){
-    updatePos();
-    drawPos();
+  void updateUser(PVector myPos){ //update from camera functions
+    pos = myPos;
+    updatePos(); //update
+    drawPos(); //draw
     updateBasePos();
     drawBasePos();
     
-    println("diff X = " + returnPosCoordDiff(pos.x,basePos.x));
-    println("diff Y = " + returnPosCoordDiff(pos.y,basePos.y));
-    println("diff Z = " + returnPosCoordDiff(pos.z,basePos.z));
+    posDiff = PVector.sub(pos,basePos);
+  }
+  
+  void updateUser(){ //update from manual mouse
+    currMillis = millis();
+    if(currMillis - randomPosMillisCount > randomPosMillisCountInterval){
+      randomPosMillisCount = currMillis;
+      randomPos.set(random(-500,500),random(-500,500),random(-100,800));
+      //println(randomPos);
+        
+    }
+    pos.set(smoothVal(pos.x,randomPos.x),smoothVal(pos.y,randomPos.y),smoothVal(pos.z,randomPos.z));
+    //println("pos z = " + pos.z);
+    
+    updatePos(); //update
+    drawPos(); //draw
+    updateBasePos();
+    drawBasePos();
+    
+    posDiff = PVector.sub(pos,basePos);
   }
   
   void updatePos(){
     currMillis = millis();
     if(currMillis - posMillisCount > posMillisCountInterval){
       posMillisCount = currMillis;
-      prevPos.set(pos); //store the last known center position ( USE SET() HERE NOT = )
+      prevPos.set(pos); //store the last known center position ( USE SET() HERE NOT = 'equals' )
     }
   }
   

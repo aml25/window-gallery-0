@@ -12,6 +12,7 @@
  /*************************************************************************
  To Do:
  ---- Fix the CENTERED user.pos bug, figure out a way to drop them (0.0,0.0,0.0)
+ ---- Figure out a way to clean up users that are not real users 
  *************************************************************************/
  
 import SimpleOpenNI.*;
@@ -19,7 +20,8 @@ import processing.opengl.*;
 import oscP5.*;
 import netP5.*;
 
-SimpleOpenNI context;
+//SimpleOpenNI context;
+DepthCam depthCam;
 float        zoomF =0.5f;
 float        rotX = radians(180);  // by default rotate the hole scene 180deg around the x-axis, 
                                    // the data from openni comes upside down
@@ -37,23 +39,9 @@ NetAddress sendLocation;
                                    
 void setup(){
   size(1024,768,OPENGL);  // strange, get drawing error in the cameraFrustum if i use P3D, in opengl there is no problem
-  context = new SimpleOpenNI(this);
-  if(context.isInit() == false)
-  {
-     println("Can't init SimpleOpenNI, maybe the camera is not connected!"); 
-     exit();
-     return;
-  }
-
-  // disable mirror
-  context.setMirror(true);
-
-  // enable depthMap generation
-  context.enableDepth();
-
-  // enable skeleton generation for all joints
-  context.enableUser();
-
+  
+  depthCam = new DepthCam(this);
+  
   stroke(255,255,255);
   smooth();  
   perspective(radians(45),
@@ -66,112 +54,43 @@ void setup(){
 
 void draw()
 {
-  // update the cam
-  context.update();
+  
 
   background(0,0,0);
+  depthCam.updateDepthCam(); //this starts the matrix (pushMatrix())
   
-  pushMatrix();
-  // set the scene pos
-  translate(width/2, height/2, 0);
-  rotateX(rotX);
-  rotateY(rotY);
-  scale(zoomF);
-  
-  int[]   depthMap = context.depthMap();
-  int[]   userMap = context.userMap();
-  int     steps   = 3;  // to speed up the drawing, draw every third point
-  int     index;
-  PVector realWorldPoint;
- 
-  translate(0,0,-1000);  // set the rotation center of the scene 1000 infront of the camera
-
-  // draw the pointcloud
-  beginShape(POINTS);
-  for(int y=0;y < context.depthHeight();y+=steps){
-    for(int x=0;x < context.depthWidth();x+=steps){
-      index = x + y * context.depthWidth();
-      if(depthMap[index] > 0){ 
-        // draw the projected point
-        realWorldPoint = context.depthMapRealWorld()[index];
-        if(userMap[index] != 0){
-          User currUser = returnUserByUserId(userMap[index]);
-          if(currUser != null){
-            stroke(currUser.rgb[0],currUser.rgb[1],currUser.rgb[2]);
-          }
-          else{
-            stroke(50,50,50);  
-          }
-        }
-        else{
-          stroke(50,50,50);  
-        }
-        point(realWorldPoint.x,realWorldPoint.y,realWorldPoint.z);
-      }
-    } 
-  } 
-  endShape();
   
   //loop through the users and do all updates here
   for(int i=0;i<users.size();i++){
     // draw the center of mass
-    if(context.getCoM(users.get(i).userId,users.get(i).pos)){
-      users.get(i).updateUser();
-      
-      scrx = screenX(users.get(i).pos.x,users.get(i).pos.y,users.get(i).pos.z);
+    PVector myPos = depthCam.checkCoM(users.get(i).userId);
+    if(myPos != null){
+      users.get(i).updateUser(myPos);
+        
+      //scrx = screenX(users.get(i).pos.x,users.get(i).pos.y,users.get(i).pos.z);
+    }
+    else{
+      users.get(i).updateUser();  
     }
   }
   
-  // draw the kinect cam
-  context.drawCamFrustum();
-  popMatrix();
+  depthCam.drawCamFrustrum(); //this ends the matrix (popMatrix())
   
-  
-  
-  //draw the fading box to see movement tracking
-  stroke(255,0,0);
-  beginShape();
-  fill(255,0);
-  vertex(0,0);
-  /*
-  if user, add vertex where they are for fading color
-  TOP VERTEX
-  */
-  for(int i=0;i<users.size();i++){
-    if(context.getCoM(users.get(i).userId,com)){
-      fill(255,0,255,50);
-      vertex(scrx,0);
-    }
-  }
-  fill(255,0);
-  vertex(width,0);
-  vertex(width,height);
-  /*
-  if user, add vertex where they are for fading color
-  BOTTOM VERTEX
-  */
-  for(int i=0;i<users.size();i++){
-    if(context.getCoM(users.get(i).userId,com)){
-      fill(255,0,255,50);
-      vertex(scrx,height);
-    }
-  }
-  fill(255,0);
-  vertex(0,height);
-  endShape(CLOSE);
-  ////////////////////////////////////////////////////
-  
-  //now send the scrx number to maxmsp
-  float panValue = map(scrx,0,width,0,1); //get the pan in a percentage
+  //now send to maxmsp
+  /*float panValue = map(scrx,0,width,0,1); //get the pan in a percentage
   if(panValue >= 0.8) panValue = 1; //cap upper limit
   if(panValue <= 0.2) panValue = 0; //cap lower limit
   float rightPan = round(panValue * 100)/100.0;
   float leftPan = round((1-panValue)*100)/100.0;
-  //println("rightPan = " + rightPan + " and leftPan = " + leftPan);
-  OscMessage myMessage = new OscMessage("");
-  myMessage.add(leftPan);
-  myMessage.add(rightPan);
-  oscP5.send(myMessage,sendLocation);  
+  //println("rightPan = " + rightPan + " and leftPan = " + leftPan);*/
+  if(users.size() > 0){
+    PVector diff = users.get(0).posDiff;
+    OscMessage myMessage = new OscMessage("");
+    myMessage.add(diff.x);
+    myMessage.add(diff.z);
+    //println(myMessage);
+    oscP5.send(myMessage,sendLocation);
+  }
 }
 
 //User functions----------------------------------------------------
@@ -206,6 +125,13 @@ void onVisibleUser(SimpleOpenNI curContext,int userId)
   //println("on visible user");
 }
 
+// -----------------------------------------------------------------
+// Mouse events
+void mousePressed(){
+  users.add(new User(int(random(10,500))));
+  PVector newPos = new PVector(0,0,0);
+  users.get(users.size()-1).updateUser(newPos);
+}
 
 // -----------------------------------------------------------------
 // Keyboard events
@@ -215,7 +141,7 @@ void keyPressed()
   switch(key)
   {
   case ' ':
-    context.setMirror(!context.mirror());
+    depthCam.setMirror();
     break;
   }
     
@@ -245,4 +171,9 @@ void keyPressed()
         rotX -= 0.1f;
       break;
   }
+}
+
+float smoothVal(float x, float y){
+  float diff = abs(x - y) / 20;
+  return x >= y ? x-diff : x + diff;  
 }
