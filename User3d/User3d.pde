@@ -26,9 +26,10 @@ float        zoomF =0.5f;
 float        rotX = radians(180);  // by default rotate the hole scene 180deg around the x-axis, 
                                    // the data from openni comes upside down
 float        rotY = radians(0);
-
 PVector      com = new PVector(); //CENTER OF MASS
-                                   
+
+float[] xMinMax = { -5,5 };
+
 float scrx;
 
 ArrayList<User> users = new ArrayList<User>();
@@ -70,7 +71,7 @@ void draw()
       //scrx = screenX(users.get(i).pos.x,users.get(i).pos.y,users.get(i).pos.z);
     }
     else{
-      users.get(i).updateUser();  
+      users.get(i).updateUser();
     }
   }
   
@@ -86,7 +87,10 @@ void draw()
   if(users.size() > 0){
     PVector diff = users.get(0).posDiff;
     OscMessage myMessage = new OscMessage("");
-    myMessage.add(diff.x);
+    float x = map(diff.x,-150,150,xMinMax[0],xMinMax[1]); //NEEDS WORK
+    x = x > xMinMax[1] ? xMinMax[1] : x;
+    x = x < xMinMax[0] ? xMinMax[0] : x;
+    myMessage.add(x);
     myMessage.add(diff.z);
     //println(myMessage);
     oscP5.send(myMessage,sendLocation);
