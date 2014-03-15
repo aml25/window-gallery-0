@@ -29,7 +29,7 @@ class User{
   long randomPosMillisCount = 0;
   int randomPosMillisCountInterval = 3000;
   
-  float scrX;
+  PVector pos2d;
   
   User(int id){
     userId = id;    
@@ -38,36 +38,39 @@ class User{
     basePos = new PVector();
     posDiff = new PVector();
     randomPos = new PVector();
+    pos2d = new PVector();
     
     for(int i=0;i<3;i++){
       rgb[i] = round(random(75,255));  
     }
   }
   
-  void updateUser(PVector myPos){ //update from camera functions
-    pos = myPos;
+  void updateUser(PVector myPos, PVector myPos2d){ //update from camera functions
+    pos.set(myPos);
+    pos2d.set(myPos2d);
     updatePos(); //update
     drawPos(); //draw
-    updateBasePos();
+    updateBasePos(pos2d);
     drawBasePos();
     
     posDiff = PVector.sub(pos,basePos);
   }
   
-  void updateUser(){ //update from manual mouse
+  void updateUser(PVector myPos2d){ //update from manual mouse
     currMillis = millis();
     if(currMillis - randomPosMillisCount > randomPosMillisCountInterval){
       randomPosMillisCount = currMillis;
-      randomPos.set(random(-500,500),random(-500,500),random(-100,800));
+      randomPos.set(random(0,width),random(0,height),random(-100,800));
       //println(randomPos);
         
     }
     pos.set(smoothVal(pos.x,randomPos.x),smoothVal(pos.y,randomPos.y),smoothVal(pos.z,randomPos.z));
     //println("pos z = " + pos.z);
+    pos2d.set(myPos2d);
     
     updatePos(); //update
     drawPos(); //draw
-    updateBasePos();
+    updateBasePos(pos2d);
     drawBasePos();
     
     posDiff = PVector.sub(pos,basePos);
@@ -79,22 +82,18 @@ class User{
       posMillisCount = currMillis;
       prevPos.set(pos); //store the last known center position ( USE SET() HERE NOT = 'equals' )
     }
-    
-    //update the scrX from pos
-    scrX = screenX(pos.x,pos.y,pos.z);
-    //println("scrX = " + scrX);
   }
   
-  void updateBasePos(){
-    basePosX.add(pos.x);
-    basePosY.add(pos.y);
-    basePosZ.add(pos.z);
+  void updateBasePos(PVector myPos){
+    basePosX.add(myPos.x);
+    basePosY.add(myPos.y);
+    //basePosZ.add(myPos.z);
     if(basePosX.size() > maxAvgCount){
       basePosX.remove(0);
       basePosY.remove(0);
-      basePosZ.remove(0);
+      //basePosZ.remove(0);
     }
-    basePos.set(returnAvg(basePosX),returnAvg(basePosY),returnAvg(basePosZ));
+    basePos.set(returnAvg(basePosX),returnAvg(basePosY)/*,returnAvg(basePosZ)*/);
   }
   
   float returnAvg(float[] v){
@@ -123,8 +122,9 @@ class User{
     fill(rgb[0],rgb[1],rgb[2]);
     noStroke();
     pushMatrix();
-    translate(pos.x,pos.y,pos.z);
-    sphere(25);
+    translate(pos2d.x,pos2d.y/*,pos.z*/);
+    //sphere(25);
+    ellipse(0,0,25,25);
     popMatrix();
   }
   
@@ -132,8 +132,9 @@ class User{
     fill(rgb[0],rgb[1],rgb[2]);
     noStroke();
     pushMatrix();
-    translate(basePos.x,basePos.y,basePos.z);
-    sphere(10);
+    translate(basePos.x,basePos.y/*,basePos.z*/);
+    //sphere(10);
+    ellipse(0,0,10,10);
     popMatrix();  
   }
   
@@ -141,7 +142,7 @@ class User{
     return posVal - basePosVal;  
   }
   
-  float returnPosDiff(PVector pos1, PVector pos2){
+  /*float returnPosDiff(PVector pos1, PVector pos2){
     float diff = 0;
     if(pos1 != null && pos2 != null){
       diff += abs(pos1.x - pos2.x);
@@ -152,6 +153,6 @@ class User{
     else{
       return 0;  
     }
-  }
+  }*/
   
 }

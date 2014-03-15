@@ -43,15 +43,15 @@ NetAddress sendLocation;
 ArrayList<Zone> zones = new ArrayList<Zone>();
                                    
 void setup(){
-  size(1024,768,OPENGL);  // strange, get drawing error in the cameraFrustum if i use P3D, in opengl there is no problem
+  size(1024,768);
   
   depthCam = new DepthCam(this);
   
   stroke(255,255,255);
   smooth();  
-  perspective(radians(45),
+  /*perspective(radians(45),
               float(width)/float(height),
-              10,150000);
+              10,150000);*/
               
   oscP5 = new OscP5(this,6000);
   sendLocation = new NetAddress("127.0.0.1",6100);
@@ -77,20 +77,21 @@ void draw()
     // draw the center of mass
     PVector myPos = depthCam.checkCoM(users.get(i).userId);
     if(myPos != null){
-      users.get(i).updateUser(myPos);
+      
+      users.get(i).updateUser(myPos,depthCam.getCoM2d(myPos));
         
       //scrx = screenX(users.get(i).pos.x,users.get(i).pos.y,users.get(i).pos.z);
     }
     else{
-      users.get(i).updateUser();
+      users.get(i).updateUser(depthCam.getCoM2d(users.get(i).pos));
     }
   }
   
-  depthCam.drawCamFrustrum(); //this ends the matrix (popMatrix())
+  //depthCam.drawCamFrustrum(); //this ends the matrix (popMatrix())
   
   //now draw the zones for visual reference
   pushMatrix();
-  translate(0,0,-200);
+  //translate(0,0,-200);
   for(int i=0;i<zones.size();i++){
     zones.get(i).drawZone();
     zones.get(i).getUserDistances(users);
@@ -158,7 +159,7 @@ void onVisibleUser(SimpleOpenNI curContext,int userId)
 void mousePressed(){
   users.add(new User(int(random(10,500))));
   PVector newPos = new PVector(0,0,0);
-  users.get(users.size()-1).updateUser(newPos);
+  users.get(users.size()-1).updateUser(newPos,depthCam.getCoM2d(newPos));
 }
 
 // -----------------------------------------------------------------
