@@ -6,6 +6,8 @@ class Zone{
   float centerLocX;
   int zoneId;
   float alph = 75;
+  float locationFactor = 0;
+  float deltaFactor = 0;
   
   Zone(int id, float myX, float myW){
     zoneId = id;
@@ -18,9 +20,31 @@ class Zone{
     centerLocX = x+(w/2);
   }
   
-  void updateZone(PVector userPos){
+  /*void updateZone(PVector userPos){
     alph = map(returnUserDistances(centerLocX, userPos.x),0,width/2,255,0);
     drawZone();
+  }*/
+  
+  void updateZone(ArrayList<User> u){
+    updateFactors(u);
+    alph = map(locationFactor, 0, 1, 0,255);
+    drawZone();
+  }
+  
+  void updateFactors(ArrayList<User> u){
+    float[] distances = returnUserDistances(u);
+    locationFactor = 0;
+    deltaFactor = 0;
+    int numCountedUsers = 0;
+    for(int i=0;i<distances.length;i++){ //same length as u.size()
+      if(distances[i] < width/3){
+        locationFactor += map(distances[i], 0, width/3, 1, 0);
+        deltaFactor += users.get(i).returnPosDelta();
+        numCountedUsers++;
+      }
+    }
+    locationFactor = locationFactor >= 1 ? 1 : locationFactor;
+    deltaFactor = numCountedUsers > 0 ? deltaFactor/numCountedUsers : 0;
   }
   
   void drawZone(){
@@ -30,21 +54,16 @@ class Zone{
     rect(x,0,w,height);
   }
   
-  /*void getUserDistances(ArrayList<User> users){
-    float[] d = new float[users.size()];
-    
+  float[] returnUserDistances(ArrayList<User> u){
+    float[] d = new float[u.size()];
     for(int i=0;i<d.length;i++){
-      d[i] = abs(centerLoc - users.get(i).pos.x);
+      d[i] = returnUserDistance(centerLocX,u.get(i).pos.x);  
     }
-    
-    distances = d;
-    if(distances.length > 0)
-      alph = map(distances[0],0,width/2,255,0);
-    //println("zone" + zoneId + " distances = ");
-    //println(distances);
-  }*/
+
+    return d;
+  }
   
-  float returnUserDistances(float pos1, float pos2){
+  float returnUserDistance(float pos1, float pos2){
     float distance = 0;
     //for(int i=0;i<d.length;i++){
     distance = abs(pos1 - pos2);

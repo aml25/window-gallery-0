@@ -8,19 +8,29 @@
  * date:  12/12/2012 (m/d/y)
  * ----------------------------------------------------------------------------
  */
+ 
+/**************************************
+TO DO:
+* 
+**************************************/
 
 import SimpleOpenNI.*;
+import oscP5.*;
+import netP5.*;
 
 SimpleOpenNI  context;
 
-PVector com = new PVector();                                   
-PVector com2d = new PVector();
-
+ArrayList<User> users = new ArrayList<User>();
 ArrayList<Zone> zones = new ArrayList<Zone>();
+
+//OSC stuff
+OscP5 oscP5;
+NetAddress sendLocation;
 
 void setup()
 {
   size(640,480);
+  frameRate(24);
   
   context = new SimpleOpenNI(this);
   if(context.isInit() == false)
@@ -29,12 +39,13 @@ void setup()
      exit();
      return;  
   }
-  context.setMirror(true);
-  // enable depthMap generation 
-  context.enableDepth();
-  // enable skeleton generation for all joints
-  context.enableUser();
+  context.setMirror(false);
+  context.enableDepth(); // enable depthMap generation 
+  context.enableUser(); // enable skeleton generation for all joints
   smooth();
+  
+  oscP5 = new OscP5(this,6000);
+  sendLocation = new NetAddress("127.0.0.1",6100);
   
   constructZones(4);
 }
@@ -57,43 +68,70 @@ void draw()
   //image(context.depthImage(),0,0);
   image(context.userImage(),0,0);
   
-  int[] userList = context.getUsers();
-  for(int i=0;i<userList.length;i++)
+  //int[] userList = context.getUsers();
+  for(int i=0;i<users.size();i++)
   {
     // draw the center of mass
-    if(context.getCoM(userList[i],com))
+    PVector com = new PVector();
+    if(context.getCoM(users.get(i).userId,com)) //boolean to test the ID is still a User, 
+                                                //also sets the "com" PVector with the Center of Mass
     {
+      PVector com2d = new PVector();
       context.convertRealWorldToProjective(com,com2d);
-      fill(255);
-      pushMatrix();
-      translate(com2d.x,com2d.y);
-      ellipse(0,0,25,25);
-      popMatrix();
+      users.get(i).updateUser(com2d);
     }
   }
   
   //draw the zones
   for(int i=0;i<zones.size();i++){
-    zones.get(i).updateZone(com2d);
+    zones.get(i).updateZone(users);
+  }
+  
+  //OSC stuff
+  if(users.size() > 0){
+    OscMessage myMessage = new OscMessage("");
+    myMessage.add(zones.get(2).locationFactor); //volume
+    myMessage.add(map(zones.get(2).deltaFactor,-width/3,width/3,-8,8)); //speed/direction
+    //println(myMessage);
+    oscP5.send(myMessage,sendLocation);
   }
 }
+
 // -----------------------------------------------------------------
 // SimpleOpenNI events
-
 void onNewUser(SimpleOpenNI curContext, int userId)
 {
   println("onNewUser - userId: " + userId);
   println("\tstart tracking skeleton");
   
-  curContext.startTrackingSkeleton(userId);
+  //curContext.startTrackingSkeleton(userId);
+  users.add(new User(userId));
 }
 
 void onLostUser(SimpleOpenNI curContext, int userId)
 {
   println("onLostUser - userId: " + userId);
+  users.remove(returnUserByUserId(userId));
 }
 
 void onVisibleUser(SimpleOpenNI curContext, int userId)
 {
   //println("onVisibleUser - userId: " + userId);
-}  
+}
+
+// ----------------------------------------------------------------
+// Extra functions
+User returnUserByUserId(int id){
+  for(int i=0;i<users.size();i++){
+    if(users.get(i).userId == id){
+      return users.get(i);
+    }
+  }
+  
+  return null;
+}
+
+float smoothVal(float x, float y){
+  float diff = abs(x - y) / 20;
+  return x >= y ? x-diff : x + diff;  
+}
