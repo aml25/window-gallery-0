@@ -3,19 +3,24 @@ float[][] corners = new float[4][2]; /*(0)*******STREET*******(1)*/
                                      /****************************/
                                      /****************************/
                                      /****************************/
-                                     /*(2)*******WINDOW*******(3)*/
+                                     /*(3)*******WINDOW*******(2)*/
 
 
 
 void setup(){
   size(500,500);
   
-  //corners = returnSavedCorners();  
   corners = returnSavedCorners();
+  println(corners[0]);
 }
 
 void draw(){
-  
+  background(0);
+  fill(255);
+  noStroke();
+  for(int i=0;i<corners.length;i++){
+    ellipse(corners[i][0],corners[i][1],10,10);
+  }
 }
 
 float[][] returnSavedCorners(){
@@ -37,6 +42,7 @@ float[][] returnSavedCorners(){
 
 void saveCorners(float[][] c){
   String[] s = new String[1];
+  s[0] = "";
   for(int i=0;i<c.length;i++){
     for(int u=0;u<c[i].length;u++){
       s[0] += c[i][u] + "";
@@ -46,31 +52,28 @@ void saveCorners(float[][] c){
     if(i<c.length -1)
       s[0] += ";";
   }
-  saveStrings("corners.text",s);
+  saveStrings("corners.txt",s);
   println("saved the corners");
 }
 
+float[] returnNormalizedXY(float x, float y){
+    float[] normalized = new float[2];
+    
+}
+
 void keyPressed(){
-  String s = key+"";
-  println(key);
-  println(s);
-  println(s.equals('s'));
   switch(key){
     case 's':
       println("pressed s");
-      break;  
-  }
+      saveCorners(corners);
+      break; 
+    default:
+      int index = int(key+"");
     
-  if(key != 'S' || key != 's'){
-    int index = int(s);
-    
-    if(index >= 0 && index <= corners.length){
-      corners[index][0] = mouseX;
-      corners[index][1] = mouseY;
-      println("setting corner " + index + " to " + mouseX + "," + mouseY);
-    }
-  }
-  else{
-    saveCorners(corners);
+      if(index >= 0 && index < corners.length){
+        corners[index][0] = mouseX;
+        corners[index][1] = mouseY;
+        println("setting corner " + index + " to " + mouseX + "," + mouseY);
+      }
   }
 }
