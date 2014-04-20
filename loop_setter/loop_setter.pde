@@ -3,6 +3,12 @@
 */
 
 import SimpleOpenNI.*;
+import oscP5.*;
+import netP5.*;
+
+//OSC stuff
+OscP5 oscP5;
+NetAddress sendLocation;
 
 int loopIndex = 0;
 ArrayList<Loop> loops = new ArrayList<Loop>();
@@ -16,6 +22,9 @@ void setup(){
   userTracking = new UserTracking(this);
   
   loadLoops();
+  
+  oscP5 = new OscP5(this,6000);
+  sendLocation = new NetAddress("127.0.0.1",6100);
 }
 
 void draw(){
@@ -32,17 +41,31 @@ void draw(){
   //calculate the distance between users and loops
   for(int i=0;i<loops.size();i++){
     loops.get(i).clearClosestBools();
-    for(int u=0;u<userTracking.userCenters.size();u++){
-      loops.get(i).addClosestBool(returnClosestLoopIndex(userTracking.userCenters.get(u)) == i);
+    if(userTracking.userCenters.size() > 0){
+      for(int u=0;u<userTracking.userCenters.size();u++){
+        if(userTracking.userCenters.get(u).z > 0 || userTracking.userCenters.get(u).z < 0){
+          loops.get(i).addClosestBool(returnClosestLoopIndex(userTracking.userCenters.get(u)) == i);
+        }
+        else{
+          loops.get(i).addClosestBool(false);
+        }
+      }
+    }
+    else{
+      loops.get(i).addClosestBool(false);
     }
   }
   
   
   println("sending loop data");
+  OscMessage myMessage = new OscMessage("");
   for(int i=0;i<loops.size();i++){
     loops.get(i).figureOutIfClosest();
     println("loop " + i + " closest = " + loops.get(i).isAClosestLoop);
+    myMessage.add(loops.get(i).isAClosestLoop);
+    
   }
+  oscP5.send(myMessage, sendLocation);
   println("-----------------");
 }
 

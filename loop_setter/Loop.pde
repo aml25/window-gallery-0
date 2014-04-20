@@ -11,7 +11,12 @@ class Loop{
   }
   
   void drawLoop(){
-    fill(255);
+    if(isAClosestLoop == 1){
+      fill(255,0,0);  
+    }
+    else{
+      fill(255);
+    }
     noStroke();
     ellipse(loc.x,loc.y,25,25);  
   }
