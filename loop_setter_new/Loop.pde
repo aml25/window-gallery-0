@@ -44,6 +44,9 @@ class Loop{
           userInside = false;
         }
       }
+      else{
+        userInside = false;
+      }
     }
   }
   

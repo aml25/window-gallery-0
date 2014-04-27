@@ -28,12 +28,19 @@ class UserTracking{
     // enable skeleton generation for all joints
     context.enableUser();
     
+    context.enableRGB();
+    
     //added for 3d
     stroke(255,255,255);
     smooth();  
     perspective(radians(45),
                 float(width)/float(height),
                 10,150000);
+  }
+  
+  PImage returnRGBImage(){
+    //image(context.rgbImage(), 0, 0);
+    return context.rgbImage();
   }
   
   void drawUsers()
@@ -43,11 +50,15 @@ class UserTracking{
     // update the cam
     context.update(); 
     
+    PImage rgbImage = context.rgbImage();
     int[]   depthMap = context.depthMap();
     int[]   userMap = context.userMap();
-    int     steps   = 3;  // to speed up the drawing, draw every third point
+    int     steps   =4;  // to speed up the drawing, draw every third point
     int     index;
     PVector realWorldPoint;
+    color pixelColor;
+    
+    PVector[] realWorldMap = context.depthMapRealWorld();
   
     // draw the pointcloud
     beginShape(POINTS);
@@ -57,15 +68,22 @@ class UserTracking{
       {
         index = x + y * context.depthWidth();
         if(depthMap[index] > 0)
-        { 
+        {
+          pixelColor = rgbImage.pixels[index];
           // draw the projected point
-          realWorldPoint = context.depthMapRealWorld()[index];
-          if(userMap[index] == 0)
-            stroke(100); 
-          else
-            stroke(userClr[ (userMap[index] - 1) % userClr.length ]);        
+          realWorldPoint = realWorldMap[index];
+          if(userMap[index] == 0){
+            //stroke(100); 
+            fill(pixelColor);
+          }
+          else{
+            fill(userClr[ (userMap[index] - 1) % userClr.length ]);
+          }
           
-          point(realWorldPoint.x,realWorldPoint.y,realWorldPoint.z);
+          pushMatrix();
+          translate(realWorldPoint.x,realWorldPoint.y,realWorldPoint.z);
+          box(4);
+          popMatrix();
         }
       } 
     } 
