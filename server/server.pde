@@ -6,12 +6,17 @@ String input = "";
 String output = "";
 int port = 9000;
 
+JSONArray json;
+
 boolean calibrationMode = false;
 
 void setup(){
-  size(640,480);
+  size(480,360);
   
   s = new Server(this, port); // Start a simple server on a port
+
+  //eventually load this from memory...
+  json = new JSONArray();
 }
 
 void draw(){
@@ -38,20 +43,48 @@ void draw(){
 void saveLoop(String[] data){
   //data[0] = the function to be called
   int id = int(data[1]);
+  int loopIndex = int(data[5]);
   
   JSONObject loop = new JSONObject();
   loop.setFloat("x",float(data[2]));
   loop.setFloat("y",float(data[3]));
   loop.setFloat("z",float(data[4]));
-  loop.setInt("index",int(data[5]));
+  loop.setInt("index",loopIndex);
   loop.setFloat("radius",float(data[6]));
   
-  println(loop);
+  if(json.isNull(id)){ //if THIS CAM array doesn't exist yet
+    //loop through until we hit i = id to initialize
+    for(int i=0;i<=id;i++){
+      if(json.isNull(i)){
+        json.append(new JSONArray());  
+      }
+    }
+    JSONArray j = new JSONArray();
+    j.append(loop);
+    json.setJSONArray(id,j);
+  }
+  else{
+    if(json.getJSONArray(id).isNull(loopIndex)){
+      json.getJSONArray(id).append(loop);  
+    }
+    else{
+      json.getJSONArray(id).setJSONObject(loopIndex,loop);
+    }
+  }
+  
+  println(json);
 }
 
 void mousePressed(){
   if(calibrationMode){
-    output = "storeLoop*\n";
+    output = "initiateLoopSet*\n";
+    s.write(output);
+  }
+}
+
+void mouseReleased(){
+  if(calibrationMode){
+    output = "finishLoopSet*\n";
     s.write(output);
   }
 }
