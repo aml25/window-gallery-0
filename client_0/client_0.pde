@@ -8,6 +8,10 @@ int port = 9000;
 int id = 0;
 int loopIndex = 0;
 
+float rotY = 0;
+float rotX = 0;
+float zoomF = 0;
+
 void setup(){
   size(640,480);
   
@@ -32,10 +36,22 @@ void draw(){
     input = c.readString();
     input = input.substring(0, input.indexOf("\n")); //only up to the new line
     println("from server: " + input);
-    
-    if(input.equals("storeLoop")){
+    String func = split(input,"*")[0];
+    if(func.equals("storeLoop")){
       println("grabbing location");
       storeLoop();
+    }
+    else if(func.equals("rotateY")){
+      rotY += float(split(input,"*")[1]);
+      println("rotY = " + rotY);
+    }
+    else if(func.equals("rotateX")){
+      rotX += float(split(input,"*")[1]);
+      println("rotX = " + rotX);
+    }
+    else if(func.equals("zoomF")){
+      zoomF += float(split(input,"*")[1]);
+      println("zoomF = " + zoomF);
     }
   }
 }
